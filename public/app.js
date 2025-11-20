@@ -16,6 +16,7 @@ let gameState = {
   roomCreator: null
 };
 
+
 // Estado para el juego de dados
 let dadosGameState = {
   roomId: null,
