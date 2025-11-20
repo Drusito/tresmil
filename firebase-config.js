@@ -3,7 +3,7 @@ require('dotenv').config();
 const admin = require('firebase-admin');
 
 // Credenciales de Firebase
-const serviceAccount = require(process.env.FIREBASE_CRED_ENV || './etc/secrets/firebase-credentials.json');
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 
 let db;
 
