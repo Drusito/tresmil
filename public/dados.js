@@ -1,5 +1,5 @@
 /* Script para el juego Tresmil con 4 Dados */
-
+ 
 // Variables del juego
 let totalPuntosDados = 0;
 let dadosBlocked = [false, false, false, false];
