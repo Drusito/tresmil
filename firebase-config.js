@@ -1,9 +1,9 @@
 require('dotenv').config();
 // Configuración de Firebase
 const admin = require('firebase-admin');
-
 // Credenciales de Firebase
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+const serviceAccount = JSON.parse(Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, "base64").toString("utf8"));
+
 
 let db;
 
