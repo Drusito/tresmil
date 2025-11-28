@@ -73,7 +73,7 @@ h1, h2, h3 {
   font-family: 'Poppins', sans-serif;
   font-weight: 600;
   font-size: 16px;
-  display: flex;
+  display: inline;
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -110,6 +110,7 @@ h1, h2, h3 {
 .btn-danger {
   background-color: var(--danger-color);
   color: var(--text-color);
+  margin-left: 1rem;
 }
 
 .btn-danger:hover:not(:disabled) {
@@ -237,6 +238,10 @@ label {
   border-radius: var(--border-radius);
   padding: 24px;
   box-shadow: var(--box-shadow);
+  display: inline;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
 }
 
 .room-code {
@@ -301,10 +306,6 @@ label {
   border-radius: 12px;
   font-size: 12px;
   max-height: 300px;
-}
-
-#creator-controls, #dados-creator-controls {
-  margin-bottom: 24px;
 }
 
 /* Pantalla de juego */
@@ -1193,7 +1194,8 @@ label {
   #log-container {
     width: 100%;
     max-width: 600px;
-    margin: 20px auto;
+    margin: 0 auto;
+    margin-bottom: 6rem;
     background-color: rgba(0, 0, 0, 0.5);
     border-radius: var(--border-radius);
     padding: 15px;
@@ -1858,4 +1860,17 @@ label {
 
 .round-column {
   font-size: 0.9em;
+}
+
+.botonera{
+  display: inline;
+  justify-content: center;
+  align-items: center;
+}
+
+.btn-wait{
+  margin-left: 3rem;
+  margin-top: 1.5rem;
+  background-color: var(--primary-color);
+  color: var(--background-dark);
 }

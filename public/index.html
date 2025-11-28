@@ -52,7 +52,7 @@
             <i class="fas fa-sign-in-alt"></i> Unirse a sala
           </button>
           <button onclick="showScreen('main-menu')" class="btn btn-info">
-            <i class="fas fa-arrow-left"></i> Volver
+            <i class="fas fa-arrow-left"></i> Volver 
           </button>
         </div>
       </div>
@@ -63,11 +63,11 @@
       <h2>Unirse a sala</h2>
       <div class="form-container">
         <input type="text" id="room-code" placeholder="Código de sala" maxlength="6">
+        <button onclick="showScreen('online-menu')" class="btn btn-secondary">
+          <i class="fas fa-arrow-left"></i> Volver 
+        </button>
         <button onclick="joinRoom()" class="btn btn-primary">
           <i class="fas fa-sign-in-alt"></i> Unirse
-        </button>
-        <button onclick="showScreen('online-menu')" class="btn btn-secondary">
-          <i class="fas fa-arrow-left"></i> Volver
         </button>
       </div>
     </div>
@@ -85,7 +85,7 @@
             <i class="fas fa-sign-in-alt"></i> Unirse a sala
           </button>
           <button onclick="showScreen('main-menu')" class="btn btn-info">
-            <i class="fas fa-arrow-left"></i> Volver
+            <i class="fas fa-arrow-left"></i> Volver 
           </button>
         </div>
       </div>
@@ -96,18 +96,20 @@
       <h2>Unirse a sala de dados</h2>
       <div class="form-container">
         <input type="text" id="dados-room-code" placeholder="Código de sala" maxlength="6">
-        <button onclick="joinDadosRoom()" class="btn btn-primary">
-          <i class="fas fa-sign-in-alt"></i> Unirse
-        </button>
+        <div class="botonera">
         <button onclick="showScreen('dados-menu')" class="btn btn-secondary">
           <i class="fas fa-arrow-left"></i> Volver
         </button>
+        <button onclick="joinDadosRoom()" class="btn btn-primary">
+          <i class="fas fa-sign-in-alt"></i> Unirse
+        </button>
+        </div>
       </div>
     </div>
 
     <!-- Pantalla de sala de espera de dados -->
     <div id="dados-waiting-room-screen" class="screen hidden">
-      <h2>Sala de espera de dados</h2>
+      <h2>Sala espera dados</h2>
       <div class="room-info">
         <div class="room-code">
           Código de sala: <span id="dados-room-code-display"></span>
@@ -119,14 +121,16 @@
           <h3>Jugadores</h3>
           <ul id="dados-player-list"></ul>
         </div>
+        <div class="botonera">
         <div id="dados-creator-controls" class="hidden">
-          <button onclick="startDadosGame()" class="btn btn-primary">
-            <i class="fas fa-play"></i> Iniciar juego
+          <button onclick="leaveDadosRoom()" class="btn btn-danger">
+            <i class="fas fa-door-open"></i> Salir
+          </button>
+          <button onclick="startDadosGame()" class="btn btn-wait">
+            <i class="fas fa-play"></i> Iniciar
           </button>
         </div>
-        <button onclick="leaveDadosRoom()" class="btn btn-danger">
-          <i class="fas fa-door-open"></i> Salir de la sala
-        </button>
+      </div>
       </div>
     </div>
 
@@ -155,7 +159,7 @@
             <i class="fas fa-play"></i> Jugar
           </button>
           <button onclick="showScreen('main-menu')" class="btn btn-secondary">
-            <i class="fas fa-arrow-left"></i> Volver
+            <i class="fas fa-arrow-left"></i> Volver 
           </button>
         </div>
       </div>
@@ -171,12 +175,14 @@
           <i class="fas fa-check"></i> Confirmar
         </button>
         <div id="offline-player-inputs" class="hidden"></div>
-        <button onclick="startOfflineGame()" id="start-offline-game" class="btn btn-success hidden">
-          <i class="fas fa-play"></i> Iniciar juego
-        </button>
-        <button onclick="showScreen('main-menu')" class="btn btn-secondary">
-          <i class="fas fa-arrow-left"></i> Volver
-        </button>
+        <div class="botonera">
+          <button onclick="showScreen('main-menu')" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver 
+          </button>
+          <button onclick="startOfflineGame()" id="start-offline-game" class="btn btn-success hidden">
+            <i class="fas fa-play"></i> Iniciar
+          </button>
+        </div>
       </div>
     </div>
     <div id="exit-confirm-modal" class="modal">
@@ -251,7 +257,7 @@
           </button>
           <div id="dados-player-inputs" class="hidden"></div>
           <button id="iniciar-dados-juego" class="btn btn-success hidden">
-            <i class="fas fa-play"></i> Iniciar juego
+            <i class="fas fa-play"></i> Iniciar
           </button>
         </div>
       </div>
@@ -291,7 +297,7 @@
         </div>
         
         <button onclick="showScreen('main-menu')" class="btn btn-secondary">
-          <i class="fas fa-arrow-left"></i> Volver al menú
+          <i class="fas fa-arrow-left"></i> Volver Volver al menú
         </button>
       </div>
     </div>
@@ -312,7 +318,7 @@
         </div>
         <div id="creator-controls" class="hidden">
           <button onclick="startGame()" class="btn btn-primary">
-            <i class="fas fa-play"></i> Iniciar juego
+            <i class="fas fa-play"></i> Iniciar
           </button>
         </div>
         <button onclick="leaveRoom()" class="btn btn-danger">
