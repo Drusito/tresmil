@@ -271,17 +271,17 @@ label {
 }
 
 .player-list-container {
-  margin-bottom: 24px;
+  margin-bottom: auto;
 }
 
 #player-list, #dados-player-list {
   list-style: none;
-  margin-top: 12px;
+  margin-top: auto;
 }
 
 #player-list li, #dados-player-list li {
   padding: 12px;
-  margin-bottom: 8px;
+  margin-bottom: auto;
   background-color: rgba(255, 255, 255, 0.1);
   border-radius: var(--border-radius);
   display: flex;
@@ -300,6 +300,7 @@ label {
   padding: 2px 8px;
   border-radius: 12px;
   font-size: 12px;
+  max-height: 300px;
 }
 
 #creator-controls, #dados-creator-controls {
@@ -316,7 +317,7 @@ label {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: auto;
   box-shadow: var(--box-shadow);
 }
 
@@ -336,7 +337,7 @@ label {
   justify-content: center;
   gap: 16px;
   width: 100%;
-  margin-bottom: 24px;
+  margin-bottom: auto;
   overflow-y: auto;
   padding: 10px;
 }
@@ -395,7 +396,6 @@ label {
   border-radius: var(--border-radius);
   padding: 16px;
   box-shadow: var(--box-shadow);
-  margin-top: auto;
   margin-bottom: 16px;
 }
 
@@ -501,7 +501,7 @@ label {
   background-color: rgba(0, 0, 0, 0.5);
   border-radius: var(--border-radius);
   padding: 15px;
-  max-height: 150px;
+  max-height: 400px;
   overflow-y: auto;
 }
 
@@ -1024,19 +1024,22 @@ label {
   }
 }
 
-@media (max-width: 600px) {
-  .stats-container {
-    padding: 16px;
+  @media (max-width: 600px) {
+    .stats-container {
+      padding: 16px;
+    }
+    
+    .player-stats-details {
+      grid-template-columns: 1fr 1fr;
+    }
+    
+    #log-container {
+      max-height: 100px;
+    }
   }
-  
-  .player-stats-details {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  #log-container {
-    max-height: 100px;
-  }
-}welcome-screen h1 {
+
+  /* Fix: missing selector prefix (#) and newline were accidentally removed earlier; restore welcome-screen rule */
+  #welcome-screen h1 {
     font-size: 48px;
   }
   
@@ -1152,7 +1155,7 @@ label {
     background-color: rgba(0, 0, 0, 0.5);
     border-radius: var(--border-radius);
     padding: 15px;
-    max-height: 150px;
+    max-height: 400px;
     overflow-y: auto;
   }
   
@@ -1767,7 +1770,7 @@ label {
 }
 
 .players-list {
-  max-height: 150px;
+  max-height: 400px;
   overflow-y: auto;
 }
 

@@ -158,55 +158,44 @@ function startOfflineGame() {
 
 // Función para crear contadores en modo offline
 function createOfflinePlayerCounters() {
+  // Reuse the compact scoreboard approach for offline mode
   const countersContainer = document.getElementById('counters-container');
-  countersContainer.innerHTML = '';
-  
+  if (!countersContainer) return;
+  // Render only the players list (no header) per user's preference
+  countersContainer.innerHTML = `
+    <div id="players-list" class="players-list"></div>
+  `;
+
+  const playersList = document.getElementById('players-list');
   offlinePlayers.forEach((player, index) => {
-    const counterDiv = document.createElement('div');
-    counterDiv.className = 'player-counter';
-    counterDiv.id = `player-${index}`;
-    
-    // Marcar el jugador activo
-    if (index === offlineCurrentTurn) {
-      counterDiv.classList.add('active-turn');
-    }
-    
-    // Añadir contenido
-    counterDiv.innerHTML = `
-      <h3>${player.name}</h3>
-      <div class="score-display">${player.totalScore}</div>
-      <div class="current-round-score">Esta ronda: ${player.currentRoundScore}</div>
+    const playerRow = document.createElement('div');
+    playerRow.className = 'player-row';
+    playerRow.id = `player-${index}`;
+    if (index === offlineCurrentTurn) playerRow.classList.add('active-turn');
+
+    playerRow.innerHTML = `
+      <div class="player-column">${player.name}</div>
+      <div class="round-column">${player.currentRoundScore || 0}</div>
+      <div class="score-column">${player.totalScore || 0}</div>
     `;
-    
-    countersContainer.appendChild(counterDiv);
+
+    playersList.appendChild(playerRow);
   });
 }
 
 // Función para actualizar contadores en modo offline
 function updateOfflinePlayerCounters() {
   offlinePlayers.forEach((player, index) => {
-    const counterDiv = document.getElementById(`player-${index}`);
-    
-    if (counterDiv) {
-      // Actualizar valores
-      const scoreDisplay = counterDiv.querySelector('.score-display');
-      const currentRoundScore = counterDiv.querySelector('.current-round-score');
-      
-      if (scoreDisplay) {
-        scoreDisplay.textContent = player.totalScore;
-      }
-      
-      if (currentRoundScore) {
-        currentRoundScore.textContent = `Esta ronda: ${player.currentRoundScore}`;
-      }
-      
-      // Marcar turno activo
-      if (index === offlineCurrentTurn) {
-        counterDiv.classList.add('active-turn');
-      } else {
-        counterDiv.classList.remove('active-turn');
-      }
-    }
+    const row = document.getElementById(`player-${index}`);
+    if (!row) return;
+
+    const scoreColumn = row.querySelector('.score-column');
+    const roundColumn = row.querySelector('.round-column');
+    if (scoreColumn) scoreColumn.textContent = player.totalScore || 0;
+    if (roundColumn) roundColumn.textContent = player.currentRoundScore || 0;
+
+    if (index === offlineCurrentTurn) row.classList.add('active-turn');
+    else row.classList.remove('active-turn');
   });
   
   // Actualizar información de turno en la pantalla
@@ -583,27 +572,28 @@ function updateDadosPlayerList(players) {
 
 // Función para crear contadores en modo online
 function createPlayerCounters(players) {
+  // Render a compact, table-like scoreboard in the counters container
   const countersContainer = document.getElementById('counters-container');
-  countersContainer.innerHTML = '';
-  
+  if (!countersContainer) return;
+  // Render only the players list (no header) for offline mode
+  countersContainer.innerHTML = `
+    <div id="players-list" class="players-list"></div>
+  `;
+
+  const playersList = document.getElementById('players-list');
   players.forEach((player, index) => {
-    const counterDiv = document.createElement('div');
-    counterDiv.className = 'player-counter';
-    counterDiv.id = `player-${index}`;
-    
-    // Marcar el jugador activo
-    if (index === gameState.currentTurn) {
-      counterDiv.classList.add('active-turn');
-    }
-    
-    // Añadir contenido
-    counterDiv.innerHTML = `
-      <h3>${player.name}</h3>
-      <div class="score-display">${player.totalScore}</div>
-      <div class="current-round-score">Esta ronda: ${player.currentRoundScore}</div>
+    const playerRow = document.createElement('div');
+    playerRow.className = 'player-row';
+    playerRow.id = `player-${index}`;
+    if (index === gameState.currentTurn) playerRow.classList.add('active-turn');
+
+    playerRow.innerHTML = `
+      <div class="player-column">${player.name}</div>
+      <div class="round-column">${player.currentRoundScore || 0}</div>
+      <div class="score-column">${player.totalScore || 0}</div>
     `;
-    
-    countersContainer.appendChild(counterDiv);
+
+    playersList.appendChild(playerRow);
   });
 }
 
@@ -632,8 +622,8 @@ function createDadosPlayerCounters(players) {
     
     playerRow.innerHTML = `
       <div class="player-column">${player.name}</div>
-      <div class="score-column">${player.totalScore || 0}</div>
       <div class="round-column">${player.currentRoundScore || 0}</div>
+      <div class="score-column">${player.totalScore || 0}</div>
     `;
     
     playersList.appendChild(playerRow);
@@ -649,28 +639,16 @@ function createDadosPlayerCounters(players) {
 // Función para actualizar contadores en modo online
 function updatePlayerCounters(players) {
   players.forEach((player, index) => {
-    const counterDiv = document.getElementById(`player-${index}`);
-    
-    if (counterDiv) {
-      // Actualizar valores
-      const scoreDisplay = counterDiv.querySelector('.score-display');
-      const currentRoundScore = counterDiv.querySelector('.current-round-score');
-      
-      if (scoreDisplay) {
-        scoreDisplay.textContent = player.totalScore;
-      }
-      
-      if (currentRoundScore) {
-        currentRoundScore.textContent = `Esta ronda: ${player.currentRoundScore}`;
-      }
-      
-      // Marcar turno activo
-      if (index === gameState.currentTurn) {
-        counterDiv.classList.add('active-turn');
-      } else {
-        counterDiv.classList.remove('active-turn');
-      }
-    }
+    const row = document.getElementById(`player-${index}`);
+    if (!row) return;
+
+    const scoreColumn = row.querySelector('.score-column');
+    const roundColumn = row.querySelector('.round-column');
+    if (scoreColumn) scoreColumn.textContent = player.totalScore || 0;
+    if (roundColumn) roundColumn.textContent = player.currentRoundScore || 0;
+
+    if (index === gameState.currentTurn) row.classList.add('active-turn');
+    else row.classList.remove('active-turn');
   });
 }
 
@@ -983,9 +961,14 @@ socket.on('scoreUpdated', function(data) {
   
   const playerCounter = document.getElementById(`player-${data.playerIndex}`);
   if (playerCounter) {
-    const currentRoundScore = playerCounter.querySelector('.current-round-score');
-    if (currentRoundScore) {
-      currentRoundScore.textContent = `Esta ronda: ${data.currentRoundScore}`;
+    // support both legacy panel (.current-round-score) and compact scoreboard (.round-column)
+    const currentRoundScoreLegacy = playerCounter.querySelector('.current-round-score');
+    const roundColumn = playerCounter.querySelector('.round-column');
+    if (currentRoundScoreLegacy) {
+      currentRoundScoreLegacy.textContent = `Esta ronda: ${data.currentRoundScore}`;
+    }
+    if (roundColumn) {
+      roundColumn.textContent = data.currentRoundScore || 0;
     }
   }
 });
