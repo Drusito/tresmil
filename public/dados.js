@@ -3,8 +3,6 @@
 // Variables del juego
 let totalPuntosDados = 0;
 let dadosBlocked = [false, false, false, false];
-let valoresDadosv = ['', '', '', ''];
-let tiradaEnProcesov = false;
 
 // Valores posibles de los dados
 const valoresPosibles = ['A', 'K', 'Q', 'J', 'R', 'N'];
@@ -47,17 +45,12 @@ function tirarDadoAnimado(id, callback) {
   // Generar secuencia completa de valores para la animación
   const secuenciaAnimacion = [];
   for (let i = 0; i < 12; i++) {
-    const randomIndex = Math.floor(Math.random() * valores.length);
-    secuenciaAnimacion.push(valores[randomIndex]);
+    const randomIndex = Math.floor(Math.random() * valoresPosibles.length);
+    secuenciaAnimacion.push(valoresPosibles[randomIndex]);
   }
   
   // Enviar la secuencia completa al servidor para sincronización
-  if (socket && socket.dadosRoomId) {
-    socket.emit('dadosAnimacionSecuencia', {
-      dadoId: dadoId,
-      secuencia: secuenciaAnimacion
-    });
-  }
+  // No emitimos secuencias desde el cliente: el servidor ahora es la fuente de verdad
   
   // Ejecutar la animación localmente
   const interval = setInterval(() => {
@@ -76,11 +69,7 @@ function tirarDadoAnimado(id, callback) {
     contador++;
   }, 50);
 
-  socket.emit('dadosAnimacionActual', {
-    dadoId: dadoId,
-    secuencia: secuenciaAnimacion,
-    paso: contador
-  });
+  // No emitimos eventos de animación individuales desde el cliente
 }
 
 // Función para reiniciar puntuación
@@ -173,38 +162,9 @@ function lanzarDados() {
   }
   
   // Generar todas las secuencias de animación y los valores finales de antemano
-  const secuenciasAnimacion = [];
-  const valoresFinales = [];
-  const dadosAnimados = [];
-  
-  // Preparar los datos para cada dado
-  for (let i = 0; i < 4; i++) {
-    if (!dadosBloqueados[i]) {
-      // Generar secuencia de animación
-      const secuencia = [];
-      for (let j = 0; j < 12; j++) {
-        const randomIndex = Math.floor(Math.random() * valores.length);
-        secuencia.push(valores[randomIndex]);
-      }
-      
-      // Generar valor final
-      const randomIndex = Math.floor(Math.random() * valores.length);
-      const valorFinal = valores[randomIndex];
-      
-      secuenciasAnimacion.push({ dadoId: i, secuencia });
-      valoresFinales.push({ dadoId: i, valor: valorFinal });
-      dadosAnimados.push(i);
-    }
-  }
-  
-  // Enviar toda la información de la tirada al servidor
-  socket.emit('dadosTiradaCompleta', {
-    secuencias: secuenciasAnimacion,
-    valoresFinales: valoresFinales,
-    dadosAnimados: dadosAnimados
-  });
-  
-  console.log("Tirada enviada al servidor");
+  // Solicitar al servidor que genere la tirada y dirija la animación/resultados
+  socket.emit('requestDadosRoll');
+  console.log('Solicitud de tirada enviada al servidor');
 }
 
 
@@ -269,5 +229,19 @@ document.addEventListener('DOMContentLoaded', function() {
   const btnPlantarse = document.getElementById('plantarse-dados');
   if (btnPlantarse) {
     btnPlantarse.addEventListener('click', plantarseDados);
+  }
+
+  // Botón provisional para forzar bancarrota (NNN) - solo para testing
+  const btnForceBankrupt = document.getElementById('force-bankrupt');
+  if (btnForceBankrupt) {
+    btnForceBankrupt.addEventListener('click', function() {
+      // Emitimos el evento que maneja la bancarrota en el servidor
+      if (typeof socket !== 'undefined') {
+        socket.emit('dadosBankrupt');
+        addLog('Se ha forzado bancarrota (NNN) para testing', 'mensaje-info');
+      } else {
+        addLog('Socket no inicializado - no se puede forzar bancarrota', 'mensaje-error');
+      }
+    });
   }
 });

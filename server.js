@@ -15,6 +15,9 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
+// Valores posibles de los dados (consistente con cliente)
+const valores = ['A', 'K', 'Q', 'J', 'R', 'N'];
+
 // Función para mostrar detalles de la solicitud
 function logRequestDetails(req, res, next) {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
@@ -429,6 +432,97 @@ io.on('connection', (socket) => {
   });
 
   // Eventos para el modo dados
+  // Nuevo endpoint: cliente solicita que el servidor genere una tirada (RNG server-side)
+  socket.on('requestDadosRoll', (req) => {
+    try {
+      const roomId = socket.dadosRoomId;
+      if (!roomId || !dadosGameRooms[roomId]) {
+        socket.emit('error', { message: 'No estás en una sala de dados válida' });
+        return;
+      }
+
+      // Verificar si es el turno del jugador
+      const playerIndex = socket.dadosPlayerIndex;
+      if (dadosGameRooms[roomId].currentTurn !== playerIndex) {
+        socket.emit('error', { message: 'No es tu turno' });
+        return;
+      }
+
+      // Determinar qué dados están disponibles (no bloqueados)
+      if (!dadosGameRooms[roomId].dadosState) {
+        dadosGameRooms[roomId].dadosState = {
+          valoresDados: ['-', '-', '-', '-'],
+          dadosBloqueados: [false, false, false, false],
+          total: 0
+        };
+      }
+
+      const available = [];
+      for (let i = 0; i < 4; i++) {
+        if (!dadosGameRooms[roomId].dadosState.dadosBloqueados[i]) available.push(i);
+      }
+
+      if (available.length === 0) {
+        // Nada que tirar, indicar reinicio
+        socket.emit('error', { message: 'No hay dados disponibles para tirar' });
+        return;
+      }
+
+      // Generar secuencias y valores finales server-side para evitar discrepancias y cheating
+      const secuencias = [];
+      const valoresFinales = [];
+      const dadosAnimados = [];
+
+      for (const dadoId of available) {
+        const secuencia = [];
+        for (let j = 0; j < 12; j++) {
+          const idx = Math.floor(Math.random() * valores.length);
+          secuencia.push(valores[idx]);
+        }
+
+        const finalIdx = Math.floor(Math.random() * valores.length);
+        const valorFinal = valores[finalIdx];
+
+        secuencias.push({ dadoId, secuencia });
+        valoresFinales.push({ dadoId, valor: valorFinal });
+        dadosAnimados.push(dadoId);
+      }
+
+      const data = {
+        playerName: dadosGameRooms[roomId].players[playerIndex].name,
+        playerIndex,
+        secuencias,
+        valoresFinales,
+        dadosAnimados
+      };
+
+      // Guardar tirada en la sala (por si se necesita)
+      dadosGameRooms[roomId].tiradaActual = data;
+
+      // Iniciar la animación en todos los clientes
+      io.to(roomId).emit('iniciarTiradaAnimacion', data);
+
+      // Después de la animación, enviar valores finales y evaluar
+      setTimeout(() => {
+        // Actualizar valores de dados en la sala (solo los tirados)
+        data.valoresFinales.forEach(item => {
+          dadosGameRooms[roomId].dadosState.valoresDados[item.dadoId] = item.valor;
+        });
+
+        io.to(roomId).emit('finalizarTiradaAnimacion', { valoresFinales: data.valoresFinales });
+
+        // Programar evaluación
+        setTimeout(() => {
+          const dadosTirados = data.valoresFinales.map(item => ({ index: item.dadoId, valor: item.valor }));
+          evaluarTirada(roomId, dadosTirados);
+        }, 500);
+      }, secuencias[0]?.secuencia.length * 50 + 100 || 700);
+    } catch (error) {
+      console.error('Error handling requestDadosRoll:', error);
+      socket.emit('error', { message: 'Error generando tirada' });
+    }
+  });
+
   socket.on('updateDadosGame', async (data) => {
     try {
       // Solo registrar actualización (sin guardar en Firebase todavía)
@@ -657,13 +751,24 @@ io.on('connection', (socket) => {
     }
 
     // Reiniciar puntuaciones del jugador para esta ronda
-    dadosGameRooms[roomId].players[playerIndex].currentRoundScore = 0;
+      // Bancarrota: reset completo de puntuaciones
+      dadosGameRooms[roomId].players[playerIndex].scores = [];
+      dadosGameRooms[roomId].players[playerIndex].currentRoundScore = 0;
+      dadosGameRooms[roomId].players[playerIndex].totalScore = 0;
     
     // Notificar a todos los jugadores
     io.to(roomId).emit('dadosPlayerBankrupt', {
       playerIndex: playerIndex,
       players: dadosGameRooms[roomId].players
     });
+
+      // Informar actualización de puntuaciones (resetTotal = true)
+      io.to(roomId).emit('dadosScoreUpdated', {
+        playerIndex: playerIndex,
+        currentRoundScore: 0,
+        players: dadosGameRooms[roomId].players,
+        resetTotal: true
+      });
 
     // Avanzar turno
     nextDadosTurn(roomId);
@@ -867,7 +972,7 @@ socket.on('dadosReiniciar', function() {
   const totalActual = dadosGameRooms[roomId].dadosState.total || 0;
   
   dadosGameRooms[roomId].dadosState.dadosBloqueados = [false, false, false, false];
-  dadosGameRooms[roomId].dadosState.valoresDados = ['-', '-', '-', '-'];
+  // No sobreescribimos valoresDados aquí: mantenemos las últimas caras visibles
   dadosGameRooms[roomId].dadosState.total = totalActual; // Mantener los puntos
   
   // Notificar a todos los jugadores
@@ -893,9 +998,8 @@ function nextDadosTurn(roomId) {
   if (!dadosGameRooms[roomId].dadosState) {
     dadosGameRooms[roomId].dadosState = {};
   }
-  
+  // Desbloquear dados para el nuevo turno, pero conservar los valores visibles
   dadosGameRooms[roomId].dadosState.dadosBloqueados = [false, false, false, false];
-  dadosGameRooms[roomId].dadosState.valoresDados = ['-', '-', '-', '-'];
   
   // Avanzar al siguiente jugador
   dadosGameRooms[roomId].currentTurn = (dadosGameRooms[roomId].currentTurn + 1) % dadosGameRooms[roomId].players.length;
@@ -903,20 +1007,36 @@ function nextDadosTurn(roomId) {
   // Reiniciar puntuación temporal para el nuevo turno
   const currentPlayer = dadosGameRooms[roomId].players[dadosGameRooms[roomId].currentTurn];
   currentPlayer.currentRoundScore = 0;
+
+  // Reiniciar el total acumulado de la sala para el nuevo jugador (cada jugador empieza con total 0)
+  dadosGameRooms[roomId].dadosState.total = 0;
   
-  // Si hemos completado una ronda
+  // Si hemos completado una ronda (el turno vuelve al primer jugador)
   if (dadosGameRooms[roomId].currentTurn === 0) {
-    dadosGameRooms[roomId].round++;
+    // Comprobar victoria al final de la ronda
+    const winnerResult = checkDadosVictoryCondition(roomId);
+    // Solo avanzar a la siguiente ronda si no hubo ganador
+    if (!winnerResult) {
+      dadosGameRooms[roomId].round++;
+      // Notificar a todos los jugadores el cambio de turno
+      io.to(roomId).emit('dadosTurnChanged', {
+        currentPlayerIndex: dadosGameRooms[roomId].currentTurn,
+        currentPlayer: dadosGameRooms[roomId].players[dadosGameRooms[roomId].currentTurn],
+        round: dadosGameRooms[roomId].round,
+        players: dadosGameRooms[roomId].players,
+        dadosState: dadosGameRooms[roomId].dadosState
+      });
+    }
+  } else {
+    // Notificar a todos los jugadores el cambio de turno
+    io.to(roomId).emit('dadosTurnChanged', {
+      currentPlayerIndex: dadosGameRooms[roomId].currentTurn,
+      currentPlayer: dadosGameRooms[roomId].players[dadosGameRooms[roomId].currentTurn],
+      round: dadosGameRooms[roomId].round,
+      players: dadosGameRooms[roomId].players,
+      dadosState: dadosGameRooms[roomId].dadosState
+    });
   }
-  
-  // Notificar a todos los jugadores
-  io.to(roomId).emit('dadosTurnChanged', {
-    currentPlayerIndex: dadosGameRooms[roomId].currentTurn,
-    currentPlayer: dadosGameRooms[roomId].players[dadosGameRooms[roomId].currentTurn],
-    round: dadosGameRooms[roomId].round,
-    players: dadosGameRooms[roomId].players,
-    dadosState: dadosGameRooms[roomId].dadosState
-  });
 }
 
 // Función para evaluar la tirada y enviar los resultados a todos
@@ -966,18 +1086,27 @@ function evaluarTirada(roomId, dadosTirados) {
     
     // Enviar resultado a todos los jugadores
     io.to(roomId).emit('resultadoTirada', resultado);
-    
-    // Actualizar puntuación y pasar turno después de un retraso
-    setTimeout(() => {
-      // Señalizar bancarrota para el jugador actual
-      io.to(roomId).emit('dadosBancarrota');
-      
-      // Avanzar turno después de la animación de bancarrota
-      setTimeout(() => {
-        nextDadosTurn(roomId);
-      }, 1500);
-    }, 1000);
-    
+
+    // Señalizar bancarrota inmediatamente y avanzar turno sin demoras para evitar ventana de race
+    io.to(roomId).emit('dadosBancarrota');
+    // Resetear puntuaciones del jugador actual (bancarrota completa)
+    const playerIdx = dadosGameRooms[roomId].currentTurn;
+    const player = dadosGameRooms[roomId].players[playerIdx];
+    if (player) {
+      player.scores = [];
+      player.currentRoundScore = 0;
+      player.totalScore = 0;
+    }
+
+    // Notificar a todos los jugadores sobre la actualización de puntuaciones
+    io.to(roomId).emit('dadosScoreUpdated', {
+      playerIndex: playerIdx,
+      currentRoundScore: 0,
+      players: dadosGameRooms[roomId].players,
+      resetTotal: true
+    });
+
+    nextDadosTurn(roomId);
     return;
   }
   
@@ -1087,13 +1216,10 @@ function evaluarTirada(roomId, dadosTirados) {
   
   // Enviar resultado a todos los jugadores
   io.to(roomId).emit('resultadoTirada', resultado);
-  
   // Actualizar puntuación y pasar turno si no puntuaron
   if (!puntuaron && dadosDisponibles.length > 0) {
-    // Avanzar turno después de un retraso para mostrar animación
-    setTimeout(() => {
-      nextDadosTurn(roomId);
-    }, 2000);
+    // Avanzar turno inmediatamente (cliente mostrará animaciones localmente)
+    nextDadosTurn(roomId);
   } else {
     // Comprobar si todos los dados están bloqueados
     if (resultado.dadosBloqueados.every(b => b)) {
