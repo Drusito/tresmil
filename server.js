@@ -15,6 +15,37 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
+// --- Cache en memoria para datos de Firebase (pre-carga) ---
+let cachedGameHistory = [];
+let cachedPlayerStats = [];
+const CACHE_REFRESH_MS = parseInt(process.env.CACHE_REFRESH_MS) || 60 * 1000; // 60s por defecto
+
+async function refreshFirebaseCache(limit = 50) {
+  try {
+    console.log('[cache] Refrescando cache de Firebase...');
+    const games = await getGameHistory(limit);
+    const players = await getPlayerStats();
+    cachedGameHistory = games || [];
+    cachedPlayerStats = players || [];
+    console.log(`[cache] Cache actualizada: ${cachedGameHistory.length} partidas, ${cachedPlayerStats.length} jugadores`);
+    return true;
+  } catch (err) {
+    console.error('[cache] Error refrescando cache de Firebase:', err);
+    return false;
+  }
+}
+
+// Pre-cargar cache al arrancar
+refreshFirebaseCache().then(ok => {
+  if (!ok) console.warn('[cache] Pre-carga fallida, los endpoints usarán llamadas directas si es necesario');
+});
+
+// Refrescar periódicamente
+setInterval(() => {
+  refreshFirebaseCache().catch(err => console.error('[cache] Falló refresh periódico:', err));
+}, CACHE_REFRESH_MS);
+
+
 // Valores posibles de los dados (consistente con cliente)
 const valores = ['A', 'K', 'Q', 'J', 'R', 'N'];
 
@@ -40,6 +71,12 @@ app.get('/api/games/history', async (req, res) => {
   try {
     console.log('Solicitando historial de partidas vía HTTP');
     const limit = req.query.limit || 20;
+    // Devolver desde cache si existe
+    if (cachedGameHistory && cachedGameHistory.length > 0) {
+      return res.json(cachedGameHistory.slice(0, parseInt(limit)));
+    }
+
+    // Fallback: consulta directa
     const gameHistory = await getGameHistory(parseInt(limit));
     res.json(gameHistory);
   } catch (error) {
@@ -52,11 +89,32 @@ app.get('/api/games/history', async (req, res) => {
 app.get('/api/players/stats', async (req, res) => {
   try {
     console.log('Solicitando estadísticas de jugadores vía HTTP');
+    if (cachedPlayerStats && cachedPlayerStats.length > 0) {
+      return res.json(cachedPlayerStats);
+    }
+
     const playerStats = await getPlayerStats();
     res.json(playerStats);
   } catch (error) {
     console.error('Error al obtener estadísticas de jugadores:', error);
     res.status(500).json({ error: 'Error al obtener estadísticas de jugadores' });
+  }
+});
+
+// Endpoint para forzar refresco de cache (opcionalmente protegido por secret)
+app.post('/api/refresh-cache', async (req, res) => {
+  try {
+    const secret = process.env.REFRESH_SECRET || '';
+    if (secret && req.query.secret !== secret) {
+      return res.status(401).json({ ok: false, message: 'Unauthorized' });
+    }
+
+    const ok = await refreshFirebaseCache();
+    if (ok) return res.json({ ok: true });
+    return res.status(500).json({ ok: false, message: 'Refresh failed' });
+  } catch (err) {
+    console.error('Error forcing cache refresh:', err);
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 
@@ -400,8 +458,13 @@ io.on('connection', (socket) => {
   socket.on('getGameHistory', async () => {
     try {
       console.log(`Solicitando historial de partidas para ${socket.id}`);
-      const gameHistory = await getGameHistory(20); // Obtener últimas 20 partidas
-      socket.emit('gameHistoryData', gameHistory);
+      // Enviar desde cache si está disponible
+      if (cachedGameHistory && cachedGameHistory.length > 0) {
+        socket.emit('gameHistoryData', cachedGameHistory.slice(0, 20));
+      } else {
+        const gameHistory = await getGameHistory(20); // Obtener últimas 20 partidas
+        socket.emit('gameHistoryData', gameHistory);
+      }
     } catch (error) {
       console.error('Error al obtener historial de partidas:', error);
       socket.emit('gameHistoryData', []);
@@ -412,8 +475,12 @@ io.on('connection', (socket) => {
   socket.on('getPlayerStats', async () => {
     try {
       console.log(`Solicitando estadísticas de jugadores para ${socket.id}`);
-      const playerStats = await getPlayerStats();
-      socket.emit('playerStatsData', playerStats);
+      if (cachedPlayerStats && cachedPlayerStats.length > 0) {
+        socket.emit('playerStatsData', cachedPlayerStats);
+      } else {
+        const playerStats = await getPlayerStats();
+        socket.emit('playerStatsData', playerStats);
+      }
     } catch (error) {
       console.error('Error al obtener estadísticas de jugadores:', error);
       socket.emit('playerStatsData', []);

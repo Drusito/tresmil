@@ -232,16 +232,5 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Botón provisional para forzar bancarrota (NNN) - solo para testing
-  const btnForceBankrupt = document.getElementById('force-bankrupt');
-  if (btnForceBankrupt) {
-    btnForceBankrupt.addEventListener('click', function() {
-      // Emitimos el evento que maneja la bancarrota en el servidor
-      if (typeof socket !== 'undefined') {
-        socket.emit('dadosBankrupt');
-        addLog('Se ha forzado bancarrota (NNN) para testing', 'mensaje-info');
-      } else {
-        addLog('Socket no inicializado - no se puede forzar bancarrota', 'mensaje-error');
-      }
-    });
-  }
+  // El botón provisional de forzar bancarrota fue eliminado de la UI.
 });
